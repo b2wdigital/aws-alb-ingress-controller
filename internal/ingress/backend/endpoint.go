@@ -145,7 +145,7 @@ func (resolver *endpointResolver) resolveIP(ingress *extensions.Ingress, backend
 		return nil, fmt.Errorf("Unable to find service endpoints for %s: %v", serviceKey, err.Error())
 	}
 
-	conditionType := api.PodConditionType(fmt.Sprintf("target-health.alb.ingress.k8s.aws/%s_%s_%s", ingress.Name, backend.ServiceName, backend.ServicePort.String()))
+	conditionType := api.PodConditionType(fmt.Sprintf("target-health.alb.ingress.k8s.aws/%s_%s", ingress.Name, backend.ServicePort.String()))
 
 	var result []*elbv2.TargetDescription
 	for _, epSubset := range eps.Subsets {

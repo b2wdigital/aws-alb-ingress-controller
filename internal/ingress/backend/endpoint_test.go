@@ -355,7 +355,7 @@ func TestResolveWithModeIP(t *testing.T) {
 			Spec: api_v1.PodSpec{
 				ReadinessGates: []api_v1.PodReadinessGate{
 					{
-						ConditionType: api_v1.PodConditionType("target-health.alb.ingress.k8s.aws/ingress_service_https"),
+						ConditionType: api_v1.PodConditionType("target-health.alb.ingress.k8s.aws/ingress_https"),
 					},
 				},
 			},
@@ -381,7 +381,7 @@ func TestResolveWithModeIP(t *testing.T) {
 			Spec: api_v1.PodSpec{
 				ReadinessGates: []api_v1.PodReadinessGate{
 					{
-						ConditionType: api_v1.PodConditionType("target-health.alb.ingress.k8s.aws/ingress_service_https"),
+						ConditionType: api_v1.PodConditionType("target-health.alb.ingress.k8s.aws/ingress_https"),
 					},
 				},
 			},

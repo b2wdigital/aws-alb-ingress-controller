@@ -171,7 +171,7 @@ func Test_RemovePodConditions(t *testing.T) {
 	podsWithCondition := podsWithReadinessGateAndStatus(conditionType, conditionType, api.ConditionTrue)
 	podsWithForeignCondition := podsWithReadinessGateAndStatus(
 		conditionType,
-		api.PodConditionType("target-health.alb.ingress.k8s.aws/ingress2_name_123"),
+		api.PodConditionType("target-health.alb.ingress.k8s.aws/ingress2_123"),
 		api.ConditionTrue,
 	)
 	podsWithMultipleConditions := podsWithReadinessGateAndStatus(conditionType, conditionType, api.ConditionTrue)
@@ -276,7 +276,7 @@ type describeTargetHealthWithContextCall struct {
 }
 
 func Test_reconcilePodConditions(t *testing.T) {
-	conditionType := api.PodConditionType("target-health.alb.ingress.k8s.aws/ingress1_name_123")
+	conditionType := api.PodConditionType("target-health.alb.ingress.k8s.aws/ingress1_123")
 	for _, tc := range []struct {
 		name                                string
 		tgARN                               string
@@ -928,7 +928,7 @@ func Test_reconcilePodConditions(t *testing.T) {
 }
 
 func Test_reconcilePodCondition(t *testing.T) {
-	conditionType := api.PodConditionType("target-health.alb.ingress.k8s.aws/ingress1_name_123")
+	conditionType := api.PodConditionType("target-health.alb.ingress.k8s.aws/ingress1_123")
 
 	for _, tc := range []struct {
 		Name          string

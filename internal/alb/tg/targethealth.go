@@ -304,9 +304,8 @@ func (c *targetHealthController) ingressTargetHealthReconciliationInterval(servi
 // PodConditionTypeForIngressBackend returns the PodConditionType that is associated with the given ingress and backend
 func podConditionTypeForIngressBackend(ingress *extensions.Ingress, backend *extensions.IngressBackend) api.PodConditionType {
 	return api.PodConditionType(fmt.Sprintf(
-		"target-health.alb.ingress.k8s.aws/%s_%s_%s",
+		"target-health.alb.ingress.k8s.aws/%s_%s",
 		ingress.Name,
-		backend.ServiceName,
 		backend.ServicePort.String(),
 	))
 }
