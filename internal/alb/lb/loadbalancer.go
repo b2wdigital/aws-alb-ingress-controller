@@ -46,6 +46,7 @@ func NewController(
 	tagsController tags.Controller) Controller {
 	attrsController := NewAttributesController(cloud)
 	wafController := NewWAFController(cloud)
+	wafV2Controller := NewWAFV2Controller(cloud)
 	shieldController := NewShieldController(cloud)
 
 	return &defaultController{
@@ -58,6 +59,7 @@ func NewController(
 		tagsController:          tagsController,
 		attrsController:         attrsController,
 		wafController:           wafController,
+		wafV2Controller:         wafV2Controller,
 		shieldController:        shieldController,
 	}
 }
@@ -83,6 +85,7 @@ type defaultController struct {
 	tagsController          tags.Controller
 	attrsController         AttributesController
 	wafController           WAFController
+	wafV2Controller         WAFV2Controller
 	shieldController        ShieldController
 }
 
@@ -118,6 +121,12 @@ func (controller *defaultController) Reconcile(ctx context.Context, ingress *ext
 
 	if controller.store.GetConfig().FeatureGate.Enabled(config.WAF) {
 		if err := controller.wafController.Reconcile(ctx, lbArn, ingress); err != nil {
+			return nil, err
+		}
+	}
+
+	if controller.store.GetConfig().FeatureGate.Enabled(config.WAFV2) {
+		if err := controller.wafV2Controller.Reconcile(ctx, lbArn, ingress); err != nil {
 			return nil, err
 		}
 	}
@@ -375,7 +384,7 @@ func (controller *defaultController) clusterSubnets(ctx context.Context, scheme 
 	}
 
 	if len(out) < 2 {
-		return nil, fmt.Errorf(`failed to resolve 2 qualified subnet for ALB. Subnets must contains these tags: '%s/%s': ['shared' or 'owned'] and '%s': ['' or '1']. See https://kubernetes-sigs.github.io/aws-alb-ingress-controller/guide/controller/config/#subnet-auto-discovery for more details. Resolved qualified subnets: '%s'`,
+		return nil, fmt.Errorf(`failed to resolve 2 qualified subnet with at least 8 free IP Addresses for ALB. Subnets must contains these tags: '%s/%s': ['shared' or 'owned'] and '%s': ['' or '1']. See https://kubernetes-sigs.github.io/aws-alb-ingress-controller/guide/controller/config/#subnet-auto-discovery for more details. Resolved qualified subnets: '%s'`,
 			aws.TagNameCluster, controller.cloud.GetClusterName(), key, log.Prettify(out))
 	}
 
@@ -386,11 +395,13 @@ func (controller *defaultController) clusterSubnets(ctx context.Context, scheme 
 // subnetIsUsable determines if the subnet shares the same availability zone as a subnet in the
 // existing list. If it does, false is returned as you cannot have albs provisioned to 2 subnets in
 // the same availability zone.
+// Also determine if the subnet has sufficient free IP space available.
 func subnetIsUsable(new *ec2.Subnet, existing []*ec2.Subnet) bool {
 	for _, subnet := range existing {
 		if *new.AvailabilityZone == *subnet.AvailabilityZone {
 			return false
 		}
 	}
-	return true
+
+	return aws.Int64Value(new.AvailableIpAddressCount) >= 8
 }

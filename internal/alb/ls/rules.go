@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/kubernetes-sigs/aws-alb-ingress-controller/pkg/util"
+
 	"github.com/kubernetes-sigs/aws-alb-ingress-controller/internal/ingress/annotations/conditions"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -152,7 +154,7 @@ func (c *rulesController) getDesiredRules(ctx context.Context, listener *elbv2.L
 			}
 			if createsRedirectLoop(listener, elbRule) {
 				continue
-			} else if isUnconditionalRedirect(listener, elbRule) {
+			} else if isUnconditionalRedirect(listener, elbRule, ingressRule.Host) {
 				seenUnconditionalRedirect = true
 			}
 			output = append(output, elbRule)
@@ -541,22 +543,31 @@ func createsRedirectLoop(listener *elbv2.Listener, r elbv2.Rule) bool {
 // isUnconditionalRedirect checks whether specified rule always redirects
 // We consider the rule is a unconditional redirect if
 // 1) The Path condition is nil, or at least one Path condition is /*
-// 2) All other rule conditions are nil (ignoring the Host condition).
-// 3) RedirectConfig is not nil.
-func isUnconditionalRedirect(listener *elbv2.Listener, r elbv2.Rule) bool {
+// 2) The Host condition don't contain any other element than host passed-in
+// 3) All other rule conditions are nil.
+// 4) RedirectConfig is not nil.
+func isUnconditionalRedirect(listener *elbv2.Listener, r elbv2.Rule, ruleHost string) bool {
 	for _, action := range r.Actions {
 		rc := action.RedirectConfig
 		if rc == nil {
 			continue
 		}
 
+		var hosts []string
 		var paths []string
 		for _, c := range r.Conditions {
 			switch aws.StringValue(c.Field) {
 			case conditions.FieldPathPattern:
 				paths = append(paths, aws.StringValueSlice(c.PathPatternConfig.Values)...)
+			case conditions.FieldHostHeader:
+				hosts = append(hosts, aws.StringValueSlice(c.HostHeaderConfig.Values)...)
 			case conditions.FieldHTTPRequestMethod, conditions.FieldSourceIP, conditions.FieldHTTPHeader, conditions.FieldQueryString:
 				// If there are any conditions, then the redirect is not unconditional
+				return false
+			}
+		}
+		for _, host := range hosts {
+			if host != ruleHost {
 				return false
 			}
 		}
@@ -571,8 +582,22 @@ func isUnconditionalRedirect(listener *elbv2.Listener, r elbv2.Rule) bool {
 			// The redirect isn't unconditional if none of the path conditions are a wildcard
 			return false
 		}
-
 		return true
 	}
 	return false
+}
+
+// redactActions will redact sensitive information from actions, so it's safe for logging.
+func redactActions(actions []*elbv2.Action) []*elbv2.Action {
+	actionsClone := make([]*elbv2.Action, len(actions))
+	for index, action := range actions {
+		actionClone := &elbv2.Action{}
+		util.DeepCopyInto(actionClone, action)
+		if actionClone.AuthenticateOidcConfig != nil {
+			actionClone.AuthenticateOidcConfig.ClientId = aws.String("<redacted>")
+			actionClone.AuthenticateOidcConfig.ClientSecret = aws.String("<redacted>")
+		}
+		actionsClone[index] = actionClone
+	}
+	return actionsClone
 }

@@ -47,6 +47,7 @@ You can add kubernetes annotations to ingress and service objects to customize t
 |[alb.ingress.kubernetes.io/target-type](#target-type)|instance \| ip|instance|ingress,service|
 |[alb.ingress.kubernetes.io/unhealthy-threshold-count](#unhealthy-threshold-count)|integer|'2'|ingress,service|
 |[alb.ingress.kubernetes.io/waf-acl-id](#waf-acl-id)|string|N/A|ingress|
+|[alb.ingress.kubernetes.io/wafv2-acl-arn](#wafv2-acl-arn)|string|N/A|ingress|
 
 ## Traffic Listening
 Traffic Listening can be controlled with following annotations:
@@ -139,7 +140,7 @@ Traffic Routing can be controlled with following annotations:
             alb.ingress.kubernetes.io/actions.forward-single-tg: >
               {"Type":"forward","TargetGroupArn": "arn-of-your-target-group"}
             alb.ingress.kubernetes.io/actions.forward-multiple-tg: >
-              {"Type":"forward","ForwardConfig":{"TargetGroups":[{"ServiceName":"service-1","ServicePort":"80","Weight":20},{"ServiceName":"service-2","ServicePort":"80","Weight":20},{"TargetGroupArn":""arn-of-your-non-k8s-target-group","Weight":60}],"TargetGroupStickinessConfig":{"Enabled":true,"DurationSeconds":200}}}
+              {"Type":"forward","ForwardConfig":{"TargetGroups":[{"ServiceName":"service-1","ServicePort":"80","Weight":20},{"ServiceName":"service-2","ServicePort":"80","Weight":20},{"TargetGroupArn":"arn-of-your-non-k8s-target-group","Weight":60}],"TargetGroupStickinessConfig":{"Enabled":true,"DurationSeconds":200}}}
         spec:
           rules:
             - http:
@@ -496,6 +497,19 @@ Health check on target groups can be controlled with following annotations:
     !!!example
         ```alb.ingress.kubernetes.io/waf-acl-id: 499e8b99-6671-4614-a86d-adb1810b7fbe
         ```
+
+## WAFv2
+- <a name="wafv2-acl-arn">`alb.ingress.kubernetes.io/wafv2-acl-arn`</a> specifies ARN for the Amazon WAFv2 web ACL.
+
+    !!!warning ""
+        Only Regional WAFv2 is supported.
+
+    !!!example
+        ```alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:us-west-2:xxxxx:regional/webacl/xxxxxxx/3ab78708-85b0-49d3-b4e1-7a9615a6613b
+        ```
+
+    !!!tip ""
+        To get the WAFv2 Web ACL ARN from the Console, click the gear icon in the upper right and enable the ARN column.
 
 ## Shield Advanced
 - <a name="shield-advanced-protection">`alb.ingress.kubernetes.io/shield-advanced-protection`</a> turns on / off the AWS Shield Advanced protection for the load balancer.
